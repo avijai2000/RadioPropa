@@ -137,6 +137,119 @@ Vector3d IceModel_Firn::getGradient(const Vector3d &position) const
 	}
 }
 
+IceModel_BSpline::IceModel_BSpline(const std::vector<double>& knots, const std::vector<double>& coeffs, int degree): knots(knots), coeffs(coeffs), degree(degree)
+{}
+IceModel_BSpline::~IceModel_BSpline()
+{}
+double IceModel_BSpline::getValue(const Vector3d &position) const
+{
+	if (position.z > 0) {
+                return 1.0;
+        }
+	else {
+		int k = degree; //initial guess of knot interval that contains x
+		double x = position.z;
+		const std::vector<double> &t = knots;
+		const std::vector<double> &c = coeffs;
+		int p = degree;
+		int n = c.size() - 1;
+
+		//find knot interval with x 
+		while (k < n && x >= t[k+1]){
+			k ++;
+		}
+		
+		std::vector<double> d(p + 1);
+		for (int j = 0; j < p + 1; j++) {
+			d[j] = c[j + k - p];
+		}
+		for (int r = 1; r < p + 1; r++) {
+			for (int j = p; j > r - 1; j--) {
+				double denom = t[j + 1 + k - r] - t[j + k - p];
+				double alpha = (denom == 0.0) ? 0.0 : (x - t[j + k - p]) / denom;
+				d[j] = (1.0 - alpha) * d[j - 1] + alpha * d[j];
+			}
+		}
+		return d[p];
+	}
+}
+
+double IceModel_BSpline::getAverageValue(const Vector3d &position1, const Vector3d &position2) const
+{
+	Vector3d p1 = position1;
+        Vector3d p2 = position2;
+	if (position1.z > position2.z){
+                p1 = position2;
+                p2 = position1;
+        }
+	if (position1.z > 0 && position2.z > 0){
+		return 1.0;
+	}
+
+	//simpson's rule 
+	const int N = 50;
+	double z1 = p1.z;
+    	double z2 = p2.z;
+    	double dz = (z2 - z1) / N;
+
+	double integral = 0.0;
+	for (int i = 0; i < N; i++) {
+		double z = z1 + i * dz;
+		double n = (z > 0) ? 1.0 : getValue(Vector3d(0,0,z));
+		if (i == 0 || i == N) {
+			integral += n;
+		}
+    		else if (i % 2 == 0) {
+        		integral += 2 * n;
+		}
+    		else {
+        		integral += 4 * n;
+		}
+	}
+	integral *= dz / 3.0;
+	return integral / (z2 - z1);
+}
+
+Vector3d IceModel_BSpline::getGradient(const Vector3d &position) const
+{
+	if (position.z > 0) {
+		return Vector3d(0,0,0);
+	}
+	else {
+	       int k = degree; //initial guess of knot interval that contains x
+               double x = position.z;
+               const std::vector<double> &t = knots;
+               const std::vector<double> &c = coeffs;
+               int p = degree;
+               int n = c.size() - 1;
+
+               //find knot interval with x
+               while (k < n && x >= t[k+1]){
+                        k ++;
+	       }
+
+	       std::vector<double> q(p);
+	       for (int j = 0; j < p; j++) {
+		       double denom = t[j+k+1] - t[j+k-p+1];
+		       q[j] = (denom == 0.0) ? 0.0 : p * c[j+k-p+1] - c[j+k-p] / denom;
+	       }
+
+	       for (int r = 1; r < p; r++) {
+	       		for (int j = p - 1; j > r - 1; j--) {
+				int right = j + 1 + k - r;
+				int left = j + k - (p-1);
+				double denom = t[right] - t[left];
+				double alpha = (denom == 0.0) ? 0.0 : (x - t[left]) / denom;
+				q[j] = (1.0 - alpha) * q[j - 1] + alpha * q[j];
+			}
+		}
+
+		return Vector3d(0, 0, q[p-1]);
+	}
+}
+
+
+
 IceModel_Exp3::IceModel_Exp3(double n_snow, double delta_n_snow, double z_shift_snow, double n_firn, double delta_n_firn, double z_shift_firn, double n_bubbly, double delta_n_bubbly, double z_shift_bubbly,double z_firn, double z_bubbly): n_snow(n_snow), delta_n_snow(delta_n_snow), z_shift_snow(z_shift_snow),
       n_firn(n_firn), delta_n_firn(delta_n_firn), z_shift_firn(z_shift_firn),
       n_bubbly(n_bubbly), delta_n_bubbly(delta_n_bubbly), z_shift_bubbly(z_shift_bubbly),

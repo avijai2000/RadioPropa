@@ -91,6 +91,27 @@ class IceModel_Exp3 : public ScalarField
                 virtual Vector3d getGradient(const Vector3d &position) const;
 };
 
+class IceModel_BSpline : public ScalarField
+{
+	protected:
+		std::vector<double> knots;
+    		std::vector<double> coeffs;
+    		int degree;
+	public:
+		IceModel_BSpline(const std::vector<double>& knots,
+                     const std::vector<double>& coeffs,
+                     int degree);
+
+    		virtual ~IceModel_BSpline();
+
+    		virtual double getValue(const Vector3d &position) const;
+
+    		virtual double getAverageValue(const Vector3d &position1,
+                                   const Vector3d &position2) const;
+
+    		virtual Vector3d getGradient(const Vector3d &position) const;
+};
+
 class IceModel_Polynomial: public ScalarField
 {
 	protected:
