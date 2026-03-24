@@ -187,13 +187,13 @@ double IceModel_BSpline::getAverageValue(const Vector3d &position1, const Vector
 	}
 
 	//simpson's rule 
-	const int N = 50;
+	const int N = 10;
 	double z1 = p1.z;
     	double z2 = p2.z;
     	double dz = (z2 - z1) / N;
 
 	double integral = 0.0;
-	for (int i = 0; i < N; i++) {
+	for (int i = 0; i <= N; i++) {
 		double z = z1 + i * dz;
 		double n = (z > 0) ? 1.0 : getValue(Vector3d(0,0,z));
 		if (i == 0 || i == N) {
@@ -231,7 +231,7 @@ Vector3d IceModel_BSpline::getGradient(const Vector3d &position) const
 	       std::vector<double> q(p);
 	       for (int j = 0; j < p; j++) {
 		       double denom = t[j+k+1] - t[j+k-p+1];
-		       q[j] = (denom == 0.0) ? 0.0 : p * c[j+k-p+1] - c[j+k-p] / denom;
+		       q[j] = (denom == 0.0) ? 0.0 : p * (c[j+k-p+1] - c[j+k-p]) / denom;
 	       }
 
 	       for (int r = 1; r < p; r++) {
